@@ -105,20 +105,10 @@ jobs:
               owner,
               repo,
               title: `✨ Feature: ${branch}`,
-              body: `Este PR foi criado automaticamente pela pipeline.
-
-              ## Alterações
-              - Alterações detectadas em \`${branch}\`
-              - Terraform validado com sucesso ✅
-              - Formatação do código verificada ✅
-
-              ## Checklist
-              - [ ] Código formatado corretamente
-              - [ ] Validação do Terraform passou
-              - [ ] Documentação atualizada (se necessário)`,
+              body: `Este PR foi criado automaticamente pela pipeline.\n\n  ## Alterações\n  - Alterações detectadas em \`${branch}\`\n  - Terraform validado com sucesso ✅\n  - Formatação do código verificada ✅\n\n  ## Checklist\n  - [ ] Código formatado corretamente\n  - [ ] Validação do Terraform passou\n  - [ ] Documentação atualizada (se necessário)`,
               head: branch,
               base: 'develop',
-              draft: true
+              // Removed draft: true to create a non-draft pull request
             });
 
             console.log(`🚀 Created PR: #${pr.data.number}`);
