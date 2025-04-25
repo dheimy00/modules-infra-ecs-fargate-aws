@@ -52,7 +52,7 @@ variable "container_port" {
 
 variable "container_environment" {
   description = "The environment variables for the container"
-  type        = list(object({
+  type = list(object({
     name  = string
     value = string
   }))
@@ -60,7 +60,7 @@ variable "container_environment" {
 
 variable "container_secrets" {
   description = "Secrets for the container"
-  type        = list(object({
+  type = list(object({
     name      = string
     valueFrom = string
   }))
