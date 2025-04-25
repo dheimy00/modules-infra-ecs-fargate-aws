@@ -1,118 +1,132 @@
+# Declaring missing variables
+
 variable "cluster_name" {
-  description = "Name of the ECS cluster"
+  description = "The name of the ECS cluster"
   type        = string
 }
 
-variable "service_name" {
-  description = "Name of the ECS service"
+variable "enable_container_insights" {
+  description = "Enable ECS container insights"
+  type        = bool
+}
+
+variable "tags" {
+  description = "Tags to apply to the resources"
+  type        = map(string)
+}
+
+variable "execution_role_arn" {
+  description = "The ARN of the ECS task execution role"
   type        = string
 }
 
-variable "task_family" {
-  description = "Family name of the ECS task definition"
+variable "task_role_arn" {
+  description = "The ARN of the ECS task role"
+  type        = string
+}
+
+variable "log_group_name" {
+  description = "The log group name for ECS task logs"
+  type        = string
+}
+
+variable "aws_region" {
+  description = "AWS region to deploy resources in"
   type        = string
 }
 
 variable "container_name" {
-  description = "Name of the container"
+  description = "The name of the container in the ECS task"
   type        = string
 }
 
 variable "container_image" {
-  description = "Docker image to use for the container"
+  description = "The container image to use"
   type        = string
 }
 
 variable "container_port" {
-  description = "Port exposed by the container"
+  description = "The port the container listens on"
   type        = number
-  default     = 80
 }
 
 variable "container_environment" {
-  description = "Environment variables for the container"
-  type        = list(map(string))
-  default     = []
+  description = "The environment variables for the container"
+  type        = list(object({
+    name  = string
+    value = string
+  }))
 }
 
 variable "container_secrets" {
   description = "Secrets for the container"
-  type        = list(map(string))
-  default     = []
-}
-
-variable "task_cpu" {
-  description = "CPU units for the task"
-  type        = number
-  default     = 256
-}
-
-variable "task_memory" {
-  description = "Memory for the task in MB"
-  type        = number
-  default     = 512
-}
-
-variable "desired_count" {
-  description = "Number of instances of the task to run"
-  type        = number
-  default     = 1
-}
-
-variable "vpc_id" {
-  description = "ID of the VPC"
-  type        = string
+  type        = list(object({
+    name      = string
+    valueFrom = string
+  }))
 }
 
 variable "subnet_ids" {
-  description = "List of subnet IDs for the ECS tasks"
+  description = "The list of subnet IDs for the ECS service"
   type        = list(string)
 }
 
-variable "assign_public_ip" {
-  description = "Whether to assign public IP to the ECS tasks"
-  type        = bool
-  default     = false
+variable "ecs_security_group_id" {
+  description = "The ECS security group ID"
+  type        = string
+}
+
+variable "target_group_arn" {
+  description = "The ARN of the ECS target group"
+  type        = string
+}
+
+variable "alb_listener_arn" {
+  description = "The ARN of the Application Load Balancer listener"
+  type        = string
 }
 
 variable "internal_alb" {
-  description = "Whether the ALB is internal"
+  description = "Whether the ALB is internal or not"
   type        = bool
-  default     = true
+}
+
+variable "security_groups" {
+  description = "The security groups for the ALB"
+  type        = list(string)
+}
+
+variable "vpc_id" {
+  description = "The VPC ID where the ECS service and ALB will be deployed"
+  type        = string
 }
 
 variable "alb_port" {
-  description = "Port for the ALB listener"
+  description = "The port on which the ALB will listen"
   type        = number
-  default     = 80
 }
 
 variable "alb_ingress_cidr_blocks" {
-  description = "List of CIDR blocks allowed to access the ALB"
+  description = "The CIDR blocks allowed for ingress to the ALB"
   type        = list(string)
-  default     = ["0.0.0.0/0"]
 }
 
-variable "health_check_path" {
-  description = "Path for the ALB health check"
+variable "prod_target_group_name" {
+  description = "The target group name for production"
   type        = string
-  default     = "/"
 }
 
-variable "enable_container_insights" {
-  description = "Whether to enable CloudWatch Container Insights"
-  type        = bool
-  default     = true
+variable "blue_target_group_name" {
+  description = "The target group name for blue deployment"
+  type        = string
 }
 
-variable "log_retention_days" {
-  description = "Number of days to retain CloudWatch logs"
+variable "codedeploy_service_role_arn" {
+  description = "The ARN of the CodeDeploy service role"
+  type        = string
+}
+
+variable "desired_count" {
+  description = "The desired number of ECS tasks"
   type        = number
-  default     = 30
 }
-
-variable "tags" {
-  description = "A map of tags to add to all resources"
-  type        = map(string)
-  default     = {}
-} 
