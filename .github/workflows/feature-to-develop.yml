@@ -105,7 +105,9 @@ jobs:
               owner,
               repo,
               title: `✨ Feature: ${branch}`,
-              body: `Este PR foi criado automaticamente pela pipeline.
+              body: `Este PR foi criado automaticamente pela pipeline.\n\n 
+              head: branch,
+              base: 'develop'
 
               ## Alterações
               - Alterações detectadas em \`${branch}\`
