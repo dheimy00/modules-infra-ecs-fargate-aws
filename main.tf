@@ -10,64 +10,6 @@ resource "aws_ecs_cluster" "main" {
   tags = var.tags
 }
 
-output "ecs_cluster_id" {
-  value = aws_ecs_cluster.main.id
-}
-
-# ECS Task Execution Role
-resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "${var.cluster_name}-task-execution-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
-      }
-    ]
-  })
-
-  tags = var.tags
-}
-
-resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
-  role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
-
-output "ecs_task_execution_role_arn" {
-  value = aws_iam_role.ecs_task_execution_role.arn
-}
-
-
-# ECS Task Role
-resource "aws_iam_role" "ecs_task_role" {
-  name = "${var.cluster_name}-task-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
-      }
-    ]
-  })
-
-  tags = var.tags
-}
-
-output "ecs_task_role_arn" {
-  value = aws_iam_role.ecs_task_role.arn
-}
-
 # ECS Task Definition
 resource "aws_ecs_task_definition" "main" {
   family                   = var.task_family
@@ -104,9 +46,6 @@ resource "aws_ecs_task_definition" "main" {
   tags = var.tags
 }
 
-output "task_definition_arn" {
-  value = aws_ecs_task_definition.main.arn
-}
 
 #  ECS Service Module
 resource "aws_ecs_service" "main" {
@@ -142,10 +81,6 @@ resource "aws_ecs_service" "main" {
   ]
 
   tags = var.tags
-}
-
-output "ecs_service_name" {
-  value = aws_ecs_service.main.name
 }
 
 
@@ -188,18 +123,6 @@ resource "aws_lb_listener" "main" {
     type             = "forward"
     target_group_arn = aws_lb_target_group.main.arn
   }
-}
-
-output "alb_arn" {
-  value = aws_lb.main.arn
-}
-
-output "alb_listener_arn" {
-  value = aws_lb_listener.main.arn
-}
-
-output "alb_target_group_arn" {
-  value = aws_lb_target_group.main.arn
 }
 
 
@@ -248,13 +171,6 @@ resource "aws_security_group" "ecs_tasks" {
   tags = var.tags
 }
 
-output "alb_security_group_id" {
-  value = aws_security_group.alb.id
-}
-
-output "ecs_tasks_security_group_id" {
-  value = aws_security_group.ecs_tasks.id
-}
 
 # CodeDeploy
 resource "aws_codedeploy_app" "main" {
@@ -308,13 +224,5 @@ resource "aws_codedeploy_deployment_group" "main" {
       }
     }
   }
-}
-
-output "codedeploy_app_name" {
-  value = aws_codedeploy_app.main.name
-}
-
-output "codedeploy_deployment_group_name" {
-  value = aws_codedeploy_deployment_group.main.deployment_group_name
 }
 
