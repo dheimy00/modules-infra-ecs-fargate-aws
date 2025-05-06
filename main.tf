@@ -113,11 +113,11 @@ resource "aws_ecs_service" "service" {
 # ECS Task Definition
 resource "aws_ecs_task_definition" "task" {
   family                   = var.cluster_name
-  network_mode            = "awsvpc"
+  network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                     = var.task_cpu
-  memory                  = var.task_memory
-  execution_role_arn      = aws_iam_role.ecs_task_execution_role.arn
+  cpu                      = var.task_cpu
+  memory                   = var.task_memory
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
 
   container_definitions = jsonencode([
     {
@@ -151,10 +151,10 @@ resource "aws_security_group" "ecs_tasks" {
   vpc_id      = var.vpc_id
 
   ingress {
-    protocol        = "tcp"
-    from_port       = var.container_port
-    to_port         = var.container_port
-    cidr_blocks     = var.ingress_cidr_blocks
+    protocol    = "tcp"
+    from_port   = var.container_port
+    to_port     = var.container_port
+    cidr_blocks = var.ingress_cidr_blocks
   }
 
   egress {
