@@ -48,6 +48,18 @@ variable "task_memory" {
   default     = 512
 }
 
+variable "task_ephemeral_storage" {
+  description = "Amount of ephemeral storage for the ECS task in GiB"
+  type        = number
+  default     = 21
+}
+
+variable "task_environment_vars" {
+  description = "Environment variables for the ECS task"
+  type        = map(string)
+  default     = {}
+}
+
 variable "desired_count" {
   description = "Number of instances of the task to run"
   type        = number
@@ -143,4 +155,14 @@ variable "scale_out_cooldown" {
   description = "Cooldown period in seconds for scale out"
   type        = number
   default     = 300
+}
+
+variable "task_role_policy_statements" {
+  description = "List of IAM policy statements for the ECS task role"
+  type = list(object({
+    effect    = string
+    actions   = list(string)
+    resources = list(string)
+  }))
+  default = []
 } 

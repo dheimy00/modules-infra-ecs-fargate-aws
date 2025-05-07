@@ -33,6 +33,12 @@ module "ecs_fargate" {
   
   nlb_internal = false
   
+  task_environment_vars = {
+    DATABASE_URL = "postgresql://user:pass@host:5432/db"
+    API_KEY      = "your-api-key"
+    ENVIRONMENT  = "production"
+  }
+  
   tags = {
     Environment = "production"
     Project     = "my-project"
@@ -60,6 +66,8 @@ module "ecs_fargate" {
 | listener_port | Port on which the NLB listener will listen | `number` | `80` | no |
 | task_cpu | CPU units for the ECS task | `number` | `256` | no |
 | task_memory | Memory for the ECS task in MiB | `number` | `512` | no |
+| task_ephemeral_storage | Amount of ephemeral storage for the ECS task in GiB | `number` | `21` | no |
+| task_environment_vars | Environment variables for the ECS task | `map(string)` | `{}` | no |
 | desired_count | Number of instances of the task to run | `number` | `1` | no |
 | nlb_internal | Whether the NLB is internal | `bool` | `false` | no |
 | enable_deletion_protection | Whether to enable deletion protection for the NLB | `bool` | `false` | no |
