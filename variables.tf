@@ -48,6 +48,18 @@ variable "task_memory" {
   default     = 512
 }
 
+variable "task_ephemeral_storage" {
+  description = "Amount of ephemeral storage for the ECS task in GiB"
+  type        = number
+  default     = 21
+}
+
+variable "task_environment_vars" {
+  description = "Environment variables for the ECS task"
+  type        = map(string)
+  default     = {}
+}
+
 variable "desired_count" {
   description = "Number of instances of the task to run"
   type        = number
