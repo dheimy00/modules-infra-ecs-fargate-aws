@@ -155,4 +155,14 @@ variable "scale_out_cooldown" {
   description = "Cooldown period in seconds for scale out"
   type        = number
   default     = 300
+}
+
+variable "task_role_policy_statements" {
+  description = "List of IAM policy statements for the ECS task role"
+  type = list(object({
+    effect    = string
+    actions   = list(string)
+    resources = list(string)
+  }))
+  default = []
 } 
