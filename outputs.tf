@@ -18,6 +18,16 @@ output "task_definition_arn" {
   value       = aws_ecs_task_definition.task.arn
 }
 
+output "task_role_arn" {
+  description = "The ARN of the ECS task role"
+  value       = aws_iam_role.ecs_task_role.arn
+}
+
+output "task_execution_role_arn" {
+  description = "The ARN of the ECS task execution role"
+  value       = aws_iam_role.ecs_task_execution_role.arn
+}
+
 output "nlb_dns_name" {
   description = "The DNS name of the Network Load Balancer"
   value       = aws_lb.nlb.dns_name
