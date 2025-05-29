@@ -9,14 +9,14 @@ terraform {
 
 # Check if ECS cluster exists
 data "aws_ecs_cluster" "existing" {
-  count = var.use_existing_cluster ? 1 : 0
+  count        = var.use_existing_cluster ? 1 : 0
   cluster_name = var.project_name
 }
 
 # ECS Cluster
 resource "aws_ecs_cluster" "main" {
   count = var.use_existing_cluster ? 0 : 1
-  name = var.project_name
+  name  = var.project_name
 
   setting {
     name  = "containerInsights"
@@ -27,7 +27,7 @@ resource "aws_ecs_cluster" "main" {
 }
 
 locals {
-  cluster_id = var.use_existing_cluster ? data.aws_ecs_cluster.existing[0].id : aws_ecs_cluster.main[0].id
+  cluster_id   = var.use_existing_cluster ? data.aws_ecs_cluster.existing[0].id : aws_ecs_cluster.main[0].id
   cluster_name = var.use_existing_cluster ? data.aws_ecs_cluster.existing[0].cluster_name : aws_ecs_cluster.main[0].name
 }
 
@@ -155,7 +155,7 @@ resource "aws_ecs_service" "service" {
 
   lifecycle {
     create_before_destroy = true
-    replace_triggered_by = [aws_ecs_task_definition.task]
+    replace_triggered_by  = [aws_ecs_task_definition.task]
   }
 
   network_configuration {
