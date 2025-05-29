@@ -1,11 +1,11 @@
 output "cluster_id" {
   description = "The ID of the ECS cluster"
-  value       = aws_ecs_cluster.main.id
+  value       = local.cluster_id
 }
 
 output "cluster_name" {
   description = "The name of the ECS cluster"
-  value       = aws_ecs_cluster.main.name
+  value       = local.cluster_name
 }
 
 output "service_name" {
@@ -28,8 +28,8 @@ output "task_execution_role_arn" {
   value       = aws_iam_role.ecs_task_execution_role.arn
 }
 
-output "nlb_dns_name" {
-  description = "The DNS name of the Network Load Balancer"
+output "load_balancer_dns" {
+  description = "The DNS name of the load balancer"
   value       = aws_lb.nlb.dns_name
 }
 
