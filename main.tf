@@ -7,9 +7,16 @@ terraform {
   }
 }
 
+# Check if ECS cluster exists
+data "aws_ecs_cluster" "existing" {
+  count        = var.use_existing_cluster ? 1 : 0
+  cluster_name = var.project_name
+}
+
 # ECS Cluster
 resource "aws_ecs_cluster" "main" {
-  name = var.cluster_name
+  count = var.use_existing_cluster ? 0 : 1
+  name  = var.project_name
 
   setting {
     name  = "containerInsights"
@@ -19,9 +26,14 @@ resource "aws_ecs_cluster" "main" {
   tags = var.tags
 }
 
+locals {
+  cluster_id   = var.use_existing_cluster ? data.aws_ecs_cluster.existing[0].id : aws_ecs_cluster.main[0].id
+  cluster_name = var.use_existing_cluster ? data.aws_ecs_cluster.existing[0].cluster_name : aws_ecs_cluster.main[0].name
+}
+
 # ECS Task Execution Role
 resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "${var.cluster_name}-task-execution-role"
+  name = "${var.project_name}-task-execution-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -46,7 +58,7 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
 
 # ECS Task Role
 resource "aws_iam_role" "ecs_task_role" {
-  name = "${var.cluster_name}-task-role"
+  name = "${var.project_name}-task-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -66,7 +78,7 @@ resource "aws_iam_role" "ecs_task_role" {
 
 # Custom Task Role Policy
 resource "aws_iam_role_policy" "ecs_task_role_policy" {
-  name = "${var.cluster_name}-task-policy"
+  name = "${var.project_name}-task-policy"
   role = aws_iam_role.ecs_task_role.id
 
   policy = jsonencode({
@@ -77,7 +89,7 @@ resource "aws_iam_role_policy" "ecs_task_role_policy" {
 
 # Network Load Balancer
 resource "aws_lb" "nlb" {
-  name               = "${var.cluster_name}-nlb"
+  name               = "${var.project_name}-nlb"
   internal           = var.nlb_internal
   load_balancer_type = "network"
   subnets            = var.subnet_ids
@@ -89,18 +101,24 @@ resource "aws_lb" "nlb" {
 
 # Target Group
 resource "aws_lb_target_group" "tg" {
-  name        = "${var.cluster_name}-tg"
+  name        = "${var.project_name}-tg"
   port        = var.container_port
   protocol    = "TCP"
   vpc_id      = var.vpc_id
   target_type = "ip"
 
-  health_check {
-    protocol            = "TCP"
-    port                = "traffic-port"
-    healthy_threshold   = 3
-    unhealthy_threshold = 3
-    interval            = 30
+  dynamic "health_check" {
+    for_each = [var.health_check_protocol]
+    content {
+      protocol            = health_check.value
+      port                = var.health_check_port
+      path                = health_check.value == "HTTP" || health_check.value == "HTTPS" ? var.health_check_path : null
+      healthy_threshold   = var.health_check_healthy_threshold
+      unhealthy_threshold = var.health_check_unhealthy_threshold
+      interval            = var.health_check_interval
+      timeout             = var.health_check_timeout
+      matcher             = health_check.value == "HTTP" || health_check.value == "HTTPS" ? var.health_check_matcher : null
+    }
   }
 
   tags = var.tags
@@ -120,11 +138,25 @@ resource "aws_lb_listener" "listener" {
 
 # ECS Service
 resource "aws_ecs_service" "service" {
-  name            = "${var.cluster_name}-service"
-  cluster         = aws_ecs_cluster.main.id
+  name            = "${var.project_name}-service"
+  cluster         = local.cluster_id
   task_definition = aws_ecs_task_definition.task.arn
   desired_count   = var.desired_count
   launch_type     = "FARGATE"
+
+  deployment_controller {
+    type = "ECS"
+  }
+
+  deployment_minimum_healthy_percent = 100
+  deployment_maximum_percent         = 200
+
+  force_new_deployment = true
+
+  lifecycle {
+    create_before_destroy = true
+    replace_triggered_by  = [aws_ecs_task_definition.task]
+  }
 
   network_configuration {
     subnets          = var.subnet_ids
@@ -143,7 +175,7 @@ resource "aws_ecs_service" "service" {
 
 # ECS Task Definition
 resource "aws_ecs_task_definition" "task" {
-  family                   = var.cluster_name
+  family                   = var.project_name
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.task_cpu
@@ -165,16 +197,30 @@ resource "aws_ecs_task_definition" "task" {
           value = value
         }
       ]
+      secrets = [
+        for secret in var.task_secrets : {
+          name      = secret.name
+          valueFrom = secret.valueFrom
+        }
+      ]
       portMappings = [
         {
           containerPort = var.container_port
+          hostPort      = var.host_port
           protocol      = "tcp"
         }
       ]
+      healthCheck = {
+        command     = var.health_check_command
+        interval    = var.health_check_interval
+        timeout     = var.health_check_timeout
+        retries     = var.health_check_retries
+        startPeriod = var.health_check_start_period
+      }
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = "/ecs/${var.cluster_name}"
+          "awslogs-group"         = "/ecs/${var.project_name}"
           "awslogs-region"        = data.aws_region.current.name
           "awslogs-stream-prefix" = "ecs"
         }
@@ -187,15 +233,30 @@ resource "aws_ecs_task_definition" "task" {
 
 # Security Group for ECS Tasks
 resource "aws_security_group" "ecs_tasks" {
-  name        = "${var.cluster_name}-sg"
+  name        = "${var.project_name}-sg"
   description = "Allow inbound traffic for ECS tasks"
   vpc_id      = var.vpc_id
 
-  ingress {
-    protocol    = "tcp"
-    from_port   = var.container_port
-    to_port     = var.container_port
-    cidr_blocks = var.ingress_cidr_blocks
+  dynamic "ingress" {
+    for_each = var.is_private_subnet ? [1] : []
+    content {
+      protocol    = "tcp"
+      from_port   = var.container_port
+      to_port     = var.container_port
+      cidr_blocks = [var.vpc_cidr]
+      description = "Allow inbound traffic from VPC CIDR"
+    }
+  }
+
+  dynamic "ingress" {
+    for_each = var.is_private_subnet ? [] : [1]
+    content {
+      protocol    = "tcp"
+      from_port   = var.container_port
+      to_port     = var.container_port
+      cidr_blocks = var.ingress_cidr_blocks
+      description = "Allow inbound traffic from specified CIDR blocks"
+    }
   }
 
   egress {
@@ -203,6 +264,7 @@ resource "aws_security_group" "ecs_tasks" {
     from_port   = 0
     to_port     = 0
     cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
   }
 
   tags = var.tags
@@ -210,7 +272,7 @@ resource "aws_security_group" "ecs_tasks" {
 
 # CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "ecs_logs" {
-  name              = "/ecs/${var.cluster_name}"
+  name              = "/ecs/${var.project_name}"
   retention_in_days = var.log_retention_days
 
   tags = var.tags
@@ -218,7 +280,7 @@ resource "aws_cloudwatch_log_group" "ecs_logs" {
 
 # Auto Scaling IAM Role
 resource "aws_iam_role" "ecs_autoscale_role" {
-  name = "${var.cluster_name}-autoscale-role"
+  name = "${var.project_name}-autoscale-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -245,7 +307,7 @@ resource "aws_iam_role_policy_attachment" "ecs_autoscale_role_policy" {
 resource "aws_appautoscaling_target" "ecs_target" {
   max_capacity       = var.max_capacity
   min_capacity       = var.min_capacity
-  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.service.name}"
+  resource_id        = "service/${local.cluster_name}/${aws_ecs_service.service.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
   role_arn           = aws_iam_role.ecs_autoscale_role.arn
@@ -254,7 +316,7 @@ resource "aws_appautoscaling_target" "ecs_target" {
 # CPU Utilization Auto Scaling Policy
 resource "aws_appautoscaling_policy" "ecs_cpu_policy" {
   count              = var.enable_cpu_autoscaling ? 1 : 0
-  name               = "${var.cluster_name}-cpu-autoscaling"
+  name               = "${var.project_name}-cpu-autoscaling"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.ecs_target.resource_id
   scalable_dimension = aws_appautoscaling_target.ecs_target.scalable_dimension
@@ -273,7 +335,7 @@ resource "aws_appautoscaling_policy" "ecs_cpu_policy" {
 # Memory Utilization Auto Scaling Policy
 resource "aws_appautoscaling_policy" "ecs_memory_policy" {
   count              = var.enable_memory_autoscaling ? 1 : 0
-  name               = "${var.cluster_name}-memory-autoscaling"
+  name               = "${var.project_name}-memory-autoscaling"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.ecs_target.resource_id
   scalable_dimension = aws_appautoscaling_target.ecs_target.scalable_dimension
