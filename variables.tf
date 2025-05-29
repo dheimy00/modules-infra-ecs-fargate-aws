@@ -1,9 +1,3 @@
-variable "service_name" {
-  description = "Name of the service, used for resource naming"
-  type        = string
-  default     = null
-}
-
 variable "cluster_name" {
   description = "Name of the cluster, used for resource naming"
   type        = string

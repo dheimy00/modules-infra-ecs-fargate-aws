@@ -90,7 +90,7 @@ resource "aws_iam_role_policy" "ecs_task_role_policy" {
 # Application Load Balancer
 resource "aws_lb" "alb" {
   name               = "${var.service_name}-alb"
-  internal           = var.nlb_internal
+  internal           = var.alb_internal
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
   subnets            = var.subnet_ids
