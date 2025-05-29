@@ -252,7 +252,7 @@ variable "health_check_matcher" {
 variable "health_check_command" {
   description = "Command to run for container health check"
   type        = list(string)
-  default     = [ ]
+  default     = []
 }
 
 variable "health_check_retries" {
