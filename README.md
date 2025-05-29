@@ -4,7 +4,7 @@ This Terraform module creates a complete ECS Fargate service with the following 
 
 - ECS Cluster with Fargate launch type (or use existing cluster)
 - ECS Service with task definition
-- Network Load Balancer (NLB)
+- Application Load Balancer (ALB) with HTTP/HTTPS support
 - Auto Scaling with CPU and Memory utilization
 - CloudWatch Logs integration
 - IAM roles and policies
@@ -51,7 +51,7 @@ module "ecs_fargate" {
 }
 ```
 
-### Advanced Usage with All Features
+### Advanced Usage with ALB Configuration
 
 ```hcl
 module "ecs_fargate" {
@@ -78,14 +78,16 @@ module "ecs_fargate" {
   }
 
   # Network Configuration
-  is_private_subnet = true 
+  is_private_subnet = true
   vpc_cidr          = "10.0.0.0/16"
-
-  is_private_subnet = false
-  ingress_cidr_blocks = ["0.0.0.0/0"]  # or specific IP ranges
-
   nlb_internal      = true
   assign_public_ip  = false
+
+  # ALB Configuration
+  health_check_protocol = "HTTP"
+  health_check_path     = "/health"
+  health_check_port     = "traffic-port"
+  health_check_matcher  = "200"
 
   # Auto Scaling Configuration
   desired_count = 2
@@ -98,12 +100,6 @@ module "ecs_fargate" {
   scale_in_cooldown        = 300
   scale_out_cooldown       = 300
 
-  # Health Check Configuration
-  health_check_protocol = "HTTP"
-  health_check_path     = "/health"
-  health_check_port     = "traffic-port"
-  health_check_command  = ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
-
   # Secrets Configuration
   task_secrets = [
     {
@@ -115,25 +111,6 @@ module "ecs_fargate" {
       valueFrom = "arn:aws:ssm:region:account:parameter/api-key"
     }
   ]
-
-  # IAM Policy Configuration
-  task_role_policy_statements = [
-    {
-      effect = "Allow"
-      actions = [
-        "s3:GetObject",
-        "s3:ListBucket"
-      ]
-      resources = [
-        "arn:aws:s3:::my-bucket",
-        "arn:aws:s3:::my-bucket/*"
-      ]
-    }
-  ]
-
-  # Monitoring Configuration
-  enable_container_insights = true
-  log_retention_days       = 30
 
   tags = {
     Environment = "production"
@@ -150,22 +127,30 @@ module "ecs_fargate" {
 | project_name | Name of the project, used for resource naming | `string` | n/a | yes |
 | use_existing_cluster | Whether to use an existing ECS cluster instead of creating a new one | `bool` | `false` | no |
 | vpc_id | ID of the VPC where resources will be created | `string` | n/a | yes |
-| subnet_ids | List of subnet IDs for the ECS tasks and NLB | `list(string)` | n/a | yes |
+| subnet_ids | List of subnet IDs for the ECS tasks and ALB | `list(string)` | n/a | yes |
 | container_name | Name of the container | `string` | `"app"` | no |
 | container_image | Docker image to run in the ECS task | `string` | n/a | yes |
 | container_port | Port exposed by the container | `number` | `80` | no |
 | host_port | Port on the host to map to the container port | `number` | `null` | no |
-| listener_port | Port on which the NLB listener will listen | `number` | `80` | no |
+| listener_port | Port on which the ALB listener will listen | `number` | `80` | no |
 | task_cpu | CPU units for the ECS task | `number` | `256` | no |
 | task_memory | Memory for the ECS task in MiB | `number` | `512` | no |
 | task_ephemeral_storage | Amount of ephemeral storage for the ECS task in GiB | `number` | `21` | no |
 | task_environment_vars | Environment variables for the ECS task | `map(string)` | `{}` | no |
 | task_secrets | List of secrets to pass to the container | `list(object)` | `[]` | no |
+| health_check_protocol | Protocol to use for health check (HTTP or HTTPS) | `string` | `"HTTP"` | no |
+| health_check_port | Port to use for health check | `string` | `"traffic-port"` | no |
+| health_check_path | Path to use for health check | `string` | `"/health"` | no |
+| health_check_healthy_threshold | Number of consecutive successful health checks required | `number` | `3` | no |
+| health_check_unhealthy_threshold | Number of consecutive failed health checks required | `number` | `3` | no |
+| health_check_interval | Interval between health checks in seconds | `number` | `30` | no |
+| health_check_timeout | Timeout for health check in seconds | `number` | `5` | no |
+| health_check_matcher | HTTP codes to use for successful response | `string` | `"200"` | no |
 | desired_count | Number of instances of the task to run | `number` | `1` | no |
 | is_private_subnet | Whether the subnets are private | `bool` | `false` | no |
 | vpc_cidr | CIDR block of the VPC | `string` | `null` | no |
-| nlb_internal | Whether the NLB is internal | `bool` | `false` | no |
-| enable_deletion_protection | Whether to enable deletion protection for the NLB | `bool` | `false` | no |
+| nlb_internal | Whether the ALB is internal | `bool` | `false` | no |
+| enable_deletion_protection | Whether to enable deletion protection for the ALB | `bool` | `false` | no |
 | assign_public_ip | Whether to assign public IP to the ECS tasks | `bool` | `false` | no |
 | ingress_cidr_blocks | List of CIDR blocks to allow inbound traffic from | `list(string)` | `["0.0.0.0/0"]` | no |
 | enable_container_insights | Whether to enable CloudWatch Container Insights | `bool` | `true` | no |
@@ -178,17 +163,6 @@ module "ecs_fargate" {
 | memory_target_value | Target memory utilization percentage for auto scaling | `number` | `70` | no |
 | scale_in_cooldown | Cooldown period in seconds for scale in | `number` | `300` | no |
 | scale_out_cooldown | Cooldown period in seconds for scale out | `number` | `300` | no |
-| health_check_protocol | Protocol to use for health check | `string` | `"HTTP"` | no |
-| health_check_port | Port to use for health check | `string` | `"traffic-port"` | no |
-| health_check_path | Path to use for health check | `string` | `"/health"` | no |
-| health_check_healthy_threshold | Number of consecutive successful health checks required | `number` | `3` | no |
-| health_check_unhealthy_threshold | Number of consecutive failed health checks required | `number` | `3` | no |
-| health_check_interval | Interval between health checks in seconds | `number` | `30` | no |
-| health_check_timeout | Timeout for health check in seconds | `number` | `5` | no |
-| health_check_matcher | HTTP codes to use for successful response | `string` | `"200"` | no |
-| health_check_command | Command to run for container health check | `list(string)` | `["CMD-SHELL", "curl -f http://localhost:${var.container_port}/health || exit 1"]` | no |
-| health_check_retries | Number of retries for container health check | `number` | `3` | no |
-| health_check_start_period | Grace period in seconds for container health check | `number` | `60` | no |
 | task_role_policy_statements | List of IAM policy statements for the ECS task role | `list(object)` | `[]` | no |
 | tags | A map of tags to add to all resources | `map(string)` | `{}` | no |
 
@@ -201,23 +175,23 @@ module "ecs_fargate" {
 | service_name | The name of the ECS service |
 | task_definition_arn | The ARN of the task definition |
 | load_balancer_dns | The DNS name of the load balancer |
+| alb_arn | The ARN of the Application Load Balancer |
+| alb_security_group_id | The ID of the security group for the ALB |
 | target_group_arn | The ARN of the target group |
 | task_execution_role_arn | The ARN of the task execution role |
 | task_role_arn | The ARN of the task role |
+| security_group_id | The ID of the security group for ECS tasks |
+| log_group_name | The name of the CloudWatch log group |
 
 ## Important Notes
 
-### Deployment Controller
-- The service uses the ECS deployment controller by default
-- This controller provides rolling updates and blue/green deployments
-- Supports deployment circuit breaker for automatic rollback on failures
-- Allows for gradual traffic shifting during deployments
-- Deployment configuration:
-  - Minimum healthy percent: 100% (ensures full capacity during deployments)
-  - Maximum percent: 200% (allows doubling of capacity during deployments)
-  - Force new deployment: Enabled (ensures new task definition is used)
-  - Create before destroy: Enabled (zero-downtime updates)
-  - Replace triggered by task definition changes (automatic updates)
+### Application Load Balancer (ALB)
+- Uses HTTP/HTTPS protocol for traffic
+- Supports path-based routing
+- Health checks are HTTP/HTTPS based
+- Security groups are required
+- Supports both internal and internet-facing configurations
+- Health check path and matcher are required for HTTP/HTTPS health checks
 
 ### Security Groups and Subnets
 - For private subnets:
@@ -230,9 +204,10 @@ module "ecs_fargate" {
   - Default allows traffic from anywhere (0.0.0.0/0)
 
 ### Health Checks
-- For TCP health checks, `path` and `matcher` parameters are not applicable
+- Health check protocol must be either HTTP or HTTPS
+- Health check path is required (e.g., "/health")
+- Health check matcher specifies valid HTTP response codes
 - Container health check command should return a non-zero exit code on failure
-- The default health check command uses curl to check the `/health` endpoint
 - Health check grace period (startPeriod) allows containers time to initialize
 
 ### Secrets
@@ -240,12 +215,6 @@ module "ecs_fargate" {
 - Secrets can be stored in AWS Secrets Manager or Systems Manager Parameter Store
 - The `valueFrom` should be the full ARN of the secret
 - Secrets are available as environment variables in the container
-
-### Network Load Balancer
-- NLB uses TCP protocol by default
-- Health check protocol can be HTTP, HTTPS, or TCP
-- For HTTP/HTTPS health checks, path and matcher are required
-- For TCP health checks, only port and protocol are used
 
 ### Auto Scaling
 - CPU and memory-based auto scaling are enabled by default
