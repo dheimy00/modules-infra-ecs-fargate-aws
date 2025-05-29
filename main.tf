@@ -212,7 +212,7 @@ resource "aws_ecs_service" "service" {
 
 # ECS Task Definition
 resource "aws_ecs_task_definition" "task" {
-  family                   = var.service_name
+  family                   = "${var.service_name}-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.task_cpu
