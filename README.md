@@ -1,16 +1,14 @@
-# AWS ECS Fargate with Network Load Balancer Terraform Module
+# AWS ECS Fargate Module
 
-This Terraform module creates an ECS Fargate cluster with a Network Load Balancer (NLB) in AWS. It includes all necessary resources such as ECS cluster, service, task definition, NLB, target group, security groups, and CloudWatch log groups.
+This Terraform module creates a complete ECS Fargate service with the following features:
 
-## Features
-
-- ECS Fargate cluster with Container Insights
+- ECS Cluster with Fargate launch type
+- ECS Service with task definition
 - Network Load Balancer (NLB)
-- ECS Service with Fargate launch type
-- Task Definition with configurable CPU and memory
-- Security Group for ECS tasks
-- CloudWatch Log Group for container logs
-- IAM roles and policies for task execution
+- Auto Scaling with CPU and Memory utilization
+- CloudWatch Logs integration
+- IAM roles and policies
+- Security groups
 
 ## Usage
 
@@ -18,30 +16,23 @@ This Terraform module creates an ECS Fargate cluster with a Network Load Balance
 module "ecs_fargate" {
   source = "path/to/module"
 
-  cluster_name    = "my-ecs-cluster"
-  vpc_id         = "vpc-12345678"
-  subnet_ids     = ["subnet-12345678", "subnet-87654321"]
-  
-  container_name  = "my-app"
+  project_name = "my-app"
+  vpc_id       = "vpc-123456"
+  subnet_ids   = ["subnet-123456", "subnet-789012"]
+
   container_image = "my-app:latest"
-  container_port  = 80
-  
+  container_port  = 8080
+
   task_cpu    = 256
   task_memory = 512
-  
+
   desired_count = 2
-  
-  nlb_internal = false
-  
-  task_environment_vars = {
-    DATABASE_URL = "postgresql://user:pass@host:5432/db"
-    API_KEY      = "your-api-key"
-    ENVIRONMENT  = "production"
-  }
-  
+  min_capacity  = 1
+  max_capacity  = 5
+
   tags = {
     Environment = "production"
-    Project     = "my-project"
+    Project     = "my-app"
   }
 }
 ```
@@ -57,7 +48,7 @@ module "ecs_fargate" {
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| cluster_name | Name of the ECS cluster | `string` | n/a | yes |
+| project_name | Name of the project, used for resource naming | `string` | n/a | yes |
 | vpc_id | ID of the VPC where resources will be created | `string` | n/a | yes |
 | subnet_ids | List of subnet IDs for the ECS tasks and NLB | `list(string)` | n/a | yes |
 | container_name | Name of the container | `string` | `"app"` | no |
@@ -75,6 +66,15 @@ module "ecs_fargate" {
 | ingress_cidr_blocks | List of CIDR blocks to allow inbound traffic from | `list(string)` | `["0.0.0.0/0"]` | no |
 | enable_container_insights | Whether to enable CloudWatch Container Insights | `bool` | `true` | no |
 | log_retention_days | Number of days to retain CloudWatch logs | `number` | `30` | no |
+| min_capacity | Minimum number of tasks to run | `number` | `1` | no |
+| max_capacity | Maximum number of tasks to run | `number` | `10` | no |
+| enable_cpu_autoscaling | Whether to enable CPU-based auto scaling | `bool` | `true` | no |
+| enable_memory_autoscaling | Whether to enable memory-based auto scaling | `bool` | `true` | no |
+| cpu_target_value | Target CPU utilization percentage for auto scaling | `number` | `70` | no |
+| memory_target_value | Target memory utilization percentage for auto scaling | `number` | `70` | no |
+| scale_in_cooldown | Cooldown period in seconds for scale in | `number` | `300` | no |
+| scale_out_cooldown | Cooldown period in seconds for scale out | `number` | `300` | no |
+| task_role_policy_statements | List of IAM policy statements for the ECS task role | `list(object)` | `[]` | no |
 | tags | A map of tags to add to all resources | `map(string)` | `{}` | no |
 
 ## Outputs
@@ -85,11 +85,41 @@ module "ecs_fargate" {
 | cluster_name | The name of the ECS cluster |
 | service_name | The name of the ECS service |
 | task_definition_arn | The ARN of the task definition |
-| nlb_dns_name | The DNS name of the Network Load Balancer |
-| nlb_arn | The ARN of the Network Load Balancer |
+| load_balancer_dns | The DNS name of the load balancer |
 | target_group_arn | The ARN of the target group |
-| security_group_id | The ID of the security group for ECS tasks |
-| log_group_name | The name of the CloudWatch log group |
+| task_execution_role_arn | The ARN of the task execution role |
+| task_role_arn | The ARN of the task role |
+
+## Auto Scaling
+
+The module configures auto scaling based on CPU and memory utilization. By default:
+- CPU utilization target: 70%
+- Memory utilization target: 70%
+- Scale in cooldown: 300 seconds
+- Scale out cooldown: 300 seconds
+
+You can adjust these values using the respective variables.
+
+## IAM Roles
+
+The module creates two IAM roles:
+1. Task Execution Role: Used by ECS to pull container images and write logs
+2. Task Role: Used by your application running in the container
+
+You can add custom policy statements to the task role using the `task_role_policy_statements` variable.
+
+## Security
+
+- The module creates a security group that allows inbound traffic on the container port
+- By default, it allows traffic from all IPs (0.0.0.0/0)
+- You can restrict this using the `ingress_cidr_blocks` variable
+
+## Logging
+
+- Container logs are sent to CloudWatch Logs
+- Log group name format: `/ecs/{project_name}`
+- Default log retention: 30 days
+- Container Insights is enabled by default
 
 ## License
 

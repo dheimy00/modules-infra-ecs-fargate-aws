@@ -1,5 +1,5 @@
-variable "cluster_name" {
-  description = "Name of the ECS cluster"
+variable "project_name" {
+  description = "Name of the project, used for resource naming"
   type        = string
 }
 
