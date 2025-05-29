@@ -19,6 +19,13 @@ This Terraform module creates a complete ECS Fargate service with the following 
 | terraform | >= 1.0 |
 | aws | ~> 5.0 |
 
+### Required AWS Services
+- VPC with at least two subnets in different Availability Zones
+- Internet Gateway (for public subnets)
+- NAT Gateway (for private subnets)
+- Route Tables configured for the subnets
+- IAM permissions for ECS, ALB, and CloudWatch
+
 ## Usage
 
 ### Basic Usage
@@ -80,7 +87,7 @@ module "ecs_fargate" {
   # Network Configuration
   is_private_subnet = true
   vpc_cidr          = "10.0.0.0/16"
-  nlb_internal      = true
+  alb_internal      = true
   assign_public_ip  = false
 
   # ALB Configuration
@@ -146,10 +153,13 @@ module "ecs_fargate" {
 | health_check_interval | Interval between health checks in seconds | `number` | `30` | no |
 | health_check_timeout | Timeout for health check in seconds | `number` | `5` | no |
 | health_check_matcher | HTTP codes to use for successful response | `string` | `"200"` | no |
+| health_check_command | Command to run for container health check | `list(string)` | `["CMD-SHELL", "curl -f http://localhost:${var.container_port}/health || exit 1"]` | no |
+| health_check_retries | Number of retries for container health check | `number` | `3` | no |
+| health_check_start_period | Grace period in seconds for container health check | `number` | `60` | no |
 | desired_count | Number of instances of the task to run | `number` | `1` | no |
 | is_private_subnet | Whether the subnets are private | `bool` | `false` | no |
 | vpc_cidr | CIDR block of the VPC | `string` | `null` | no |
-| nlb_internal | Whether the ALB is internal | `bool` | `false` | no |
+| alb_internal | Whether the ALB is internal | `bool` | `false` | no |
 | enable_deletion_protection | Whether to enable deletion protection for the ALB | `bool` | `false` | no |
 | assign_public_ip | Whether to assign public IP to the ECS tasks | `bool` | `false` | no |
 | ingress_cidr_blocks | List of CIDR blocks to allow inbound traffic from | `list(string)` | `["0.0.0.0/0"]` | no |
@@ -192,6 +202,11 @@ module "ecs_fargate" {
 - Security groups are required
 - Supports both internal and internet-facing configurations
 - Health check path and matcher are required for HTTP/HTTPS health checks
+- HTTPS support requires:
+  - SSL/TLS certificate in AWS Certificate Manager (ACM)
+  - HTTPS listener configuration
+  - Security group rules for port 443
+  - Proper health check protocol (HTTPS) when using HTTPS
 
 ### Security Groups and Subnets
 - For private subnets:
@@ -209,6 +224,17 @@ module "ecs_fargate" {
 - Health check matcher specifies valid HTTP response codes
 - Container health check command should return a non-zero exit code on failure
 - Health check grace period (startPeriod) allows containers time to initialize
+- Container-level health checks:
+  - Configured using `health_check_command`
+  - Default command uses curl to check the health endpoint
+  - Custom commands can be specified as a list of strings
+  - Example: `["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]`
+  - Must return exit code 0 for success, non-zero for failure
+  - Retries and start period can be configured
+- ALB target group health checks:
+  - Configured using `health_check_protocol`, `health_check_path`, etc.
+  - Used to determine if the container is healthy for traffic routing
+  - Independent of container-level health checks
 
 ### Secrets
 - Task execution role needs permissions to access secrets
