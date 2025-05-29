@@ -307,7 +307,7 @@ resource "aws_iam_role_policy_attachment" "ecs_autoscale_role_policy" {
 resource "aws_appautoscaling_target" "ecs_target" {
   max_capacity       = var.max_capacity
   min_capacity       = var.min_capacity
-  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.service.name}"
+  resource_id        = "service/${local.cluster_name}/${aws_ecs_service.service.name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
   role_arn           = aws_iam_role.ecs_autoscale_role.arn
