@@ -77,6 +77,7 @@ variable "desired_count" {
 variable "service_name" {
   description = "Name of the service, used for resource naming"
   type        = string
+  default     = null
 }
 
 variable "alb_internal" {
@@ -270,4 +271,10 @@ variable "health_check_start_period" {
   description = "Grace period in seconds for container health check"
   type        = number
   default     = 60
+}
+
+variable "tags" {
+  description = "A map of tags to add to all resources"
+  type        = map(string)
+  default     = {}
 } 
