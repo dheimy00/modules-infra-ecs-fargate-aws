@@ -87,14 +87,54 @@ resource "aws_iam_role_policy" "ecs_task_role_policy" {
   })
 }
 
-# Network Load Balancer
-resource "aws_lb" "nlb" {
-  name               = "${var.project_name}-nlb"
+# Application Load Balancer
+resource "aws_lb" "alb" {
+  name               = "${var.project_name}-alb"
   internal           = var.nlb_internal
-  load_balancer_type = "network"
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb.id]
   subnets            = var.subnet_ids
 
   enable_deletion_protection = var.enable_deletion_protection
+
+  tags = var.tags
+}
+
+# Security Group for ALB
+resource "aws_security_group" "alb" {
+  name        = "${var.project_name}-alb-sg"
+  description = "Allow inbound traffic for ALB"
+  vpc_id      = var.vpc_id
+
+  dynamic "ingress" {
+    for_each = var.is_private_subnet ? [1] : []
+    content {
+      protocol    = "tcp"
+      from_port   = var.listener_port
+      to_port     = var.listener_port
+      cidr_blocks = [var.vpc_cidr]
+      description = "Allow inbound traffic from VPC CIDR"
+    }
+  }
+
+  dynamic "ingress" {
+    for_each = var.is_private_subnet ? [] : [1]
+    content {
+      protocol    = "tcp"
+      from_port   = var.listener_port
+      to_port     = var.listener_port
+      cidr_blocks = var.ingress_cidr_blocks
+      description = "Allow inbound traffic from specified CIDR blocks"
+    }
+  }
+
+  egress {
+    protocol    = "-1"
+    from_port   = 0
+    to_port     = 0
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
+  }
 
   tags = var.tags
 }
@@ -103,22 +143,19 @@ resource "aws_lb" "nlb" {
 resource "aws_lb_target_group" "tg" {
   name        = "${var.project_name}-tg"
   port        = var.container_port
-  protocol    = "TCP"
+  protocol    = "HTTP"
   vpc_id      = var.vpc_id
   target_type = "ip"
 
-  dynamic "health_check" {
-    for_each = [var.health_check_protocol]
-    content {
-      protocol            = health_check.value
-      port                = var.health_check_port
-      path                = health_check.value == "HTTP" || health_check.value == "HTTPS" ? var.health_check_path : null
-      healthy_threshold   = var.health_check_healthy_threshold
-      unhealthy_threshold = var.health_check_unhealthy_threshold
-      interval            = var.health_check_interval
-      timeout             = var.health_check_timeout
-      matcher             = health_check.value == "HTTP" || health_check.value == "HTTPS" ? var.health_check_matcher : null
-    }
+  health_check {
+    protocol            = var.health_check_protocol
+    port                = var.health_check_port
+    path                = var.health_check_path
+    healthy_threshold   = var.health_check_healthy_threshold
+    unhealthy_threshold = var.health_check_unhealthy_threshold
+    interval            = var.health_check_interval
+    timeout             = var.health_check_timeout
+    matcher             = var.health_check_matcher
   }
 
   tags = var.tags
@@ -126,9 +163,9 @@ resource "aws_lb_target_group" "tg" {
 
 # Listener
 resource "aws_lb_listener" "listener" {
-  load_balancer_arn = aws_lb.nlb.arn
+  load_balancer_arn = aws_lb.alb.arn
   port              = var.listener_port
-  protocol          = "TCP"
+  protocol          = "HTTP"
 
   default_action {
     type             = "forward"

@@ -73,7 +73,7 @@ variable "desired_count" {
 }
 
 variable "nlb_internal" {
-  description = "Whether the NLB is internal"
+  description = "Whether the ALB is internal"
   type        = bool
   default     = false
 }
@@ -202,9 +202,13 @@ variable "task_secrets" {
 
 # Health Check Variables
 variable "health_check_protocol" {
-  description = "Protocol to use for health check"
+  description = "Protocol to use for health check (HTTP or HTTPS)"
   type        = string
   default     = "HTTP"
+  validation {
+    condition     = contains(["HTTP", "HTTPS"], var.health_check_protocol)
+    error_message = "Health check protocol must be either HTTP or HTTPS."
+  }
 }
 
 variable "health_check_port" {
