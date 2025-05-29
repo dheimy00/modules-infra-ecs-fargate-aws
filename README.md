@@ -34,7 +34,7 @@ This Terraform module creates a complete ECS Fargate service with the following 
 module "ecs_fargate" {
   source = "path/to/module"
 
-  project_name = "my-app"
+  service_name = "my-app"
   vpc_id       = "vpc-123456"
   subnet_ids   = ["subnet-123456", "subnet-789012"]
 
@@ -65,7 +65,7 @@ module "ecs_fargate" {
   source = "path/to/module"
 
   # Basic Configuration
-  project_name = "my-app"
+  service_name = "my-app"
   vpc_id       = "vpc-123456"
   subnet_ids   = ["subnet-123456", "subnet-789012"]
 
@@ -131,7 +131,7 @@ module "ecs_fargate" {
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| project_name | Name of the project, used for resource naming | `string` | n/a | yes |
+| service_name | Name of the service, used for resource naming | `string` | n/a | yes |
 | use_existing_cluster | Whether to use an existing ECS cluster instead of creating a new one | `bool` | `false` | no |
 | vpc_id | ID of the VPC where resources will be created | `string` | n/a | yes |
 | subnet_ids | List of subnet IDs for the ECS tasks and ALB | `list(string)` | n/a | yes |
@@ -332,7 +332,7 @@ healthCheck = {
 ### Monitoring
 - CloudWatch Container Insights is enabled by default
 - Logs are retained for 30 days by default
-- Log group name format: `/ecs/{project_name}`
+- Log group name format: `/ecs/{service_name}`
 - Metrics are available for CPU, memory, and network usage
 
 ## License

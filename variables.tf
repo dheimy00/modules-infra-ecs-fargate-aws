@@ -1,7 +1,15 @@
-variable "project_name" {
-  description = "Name of the project, used for resource naming"
+variable "service_name" {
+  description = "Name of the service, used for resource naming"
   type        = string
+  default     = null
 }
+
+variable "cluster_name" {
+  description = "Name of the cluster, used for resource naming"
+  type        = string
+  default     = null
+}
+
 
 variable "use_existing_cluster" {
   description = "Whether to use an existing ECS cluster instead of creating a new one"
@@ -15,7 +23,7 @@ variable "vpc_id" {
 }
 
 variable "subnet_ids" {
-  description = "List of subnet IDs for the ECS tasks and NLB"
+  description = "List of subnet IDs for the ECS tasks and ALB"
   type        = list(string)
 }
 
@@ -72,14 +80,19 @@ variable "desired_count" {
   default     = 1
 }
 
-variable "nlb_internal" {
+variable "service_name" {
+  description = "Name of the service, used for resource naming"
+  type        = string
+}
+
+variable "alb_internal" {
   description = "Whether the ALB is internal"
   type        = bool
   default     = false
 }
 
 variable "enable_deletion_protection" {
-  description = "Whether to enable deletion protection for the NLB"
+  description = "Whether to enable deletion protection for the ALB"
   type        = bool
   default     = false
 }
@@ -118,12 +131,6 @@ variable "log_retention_days" {
   description = "Number of days to retain CloudWatch logs"
   type        = number
   default     = 30
-}
-
-variable "tags" {
-  description = "A map of tags to add to all resources"
-  type        = map(string)
-  default     = {}
 }
 
 # Auto Scaling Variables
