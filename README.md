@@ -236,6 +236,81 @@ module "ecs_fargate" {
   - Used to determine if the container is healthy for traffic routing
   - Independent of container-level health checks
 
+### Container HealthCheck Configuration
+The module configures container health checks in the ECS task definition with the following parameters:
+
+```hcl
+healthCheck = {
+  command     = var.health_check_command
+  interval    = var.health_check_interval
+  timeout     = var.health_check_timeout
+  retries     = var.health_check_retries
+  startPeriod = var.health_check_start_period
+}
+```
+
+#### HealthCheck Parameters
+- `command`: The command to run to check container health
+  - Must be a list of strings
+  - First element is typically "CMD-SHELL"
+  - Example: `["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]`
+  - Should return exit code 0 for healthy, non-zero for unhealthy
+  - Can use any command available in the container
+
+- `interval`: Time between health checks (seconds)
+  - Default: 30 seconds
+  - Minimum: 5 seconds
+  - Maximum: 300 seconds
+  - Should be longer than the timeout
+
+- `timeout`: Time to wait for health check to complete (seconds)
+  - Default: 5 seconds
+  - Minimum: 2 seconds
+  - Maximum: 60 seconds
+  - Should be shorter than the interval
+
+- `retries`: Number of consecutive failures before marking unhealthy
+  - Default: 3
+  - Minimum: 1
+  - Maximum: 10
+  - Helps prevent false negatives
+
+- `startPeriod`: Grace period for container startup (seconds)
+  - Default: 60 seconds
+  - Minimum: 0 seconds
+  - Maximum: 300 seconds
+  - Allows time for application initialization
+
+#### Best Practices
+1. Command Configuration:
+   - Use absolute paths in commands
+   - Include proper error handling
+   - Consider container resource constraints
+   - Test commands locally before deployment
+
+2. Timing Configuration:
+   - Set appropriate intervals based on application needs
+   - Ensure timeout is less than interval
+   - Consider application startup time for startPeriod
+   - Balance between responsiveness and resource usage
+
+3. Retry Configuration:
+   - Set retries based on application stability
+   - Consider network latency and temporary issues
+   - Avoid too many retries to prevent delayed failure detection
+
+4. Integration with ALB:
+   - Align container health check with ALB health check
+   - Consider using the same health endpoint
+   - Ensure consistent success criteria
+   - Monitor both health check types
+
+5. Monitoring:
+   - Set up CloudWatch alarms for health check failures
+   - Monitor health check metrics
+   - Track container restarts
+   - Review health check logs
+
 ### Secrets
 - Task execution role needs permissions to access secrets
 - Secrets can be stored in AWS Secrets Manager or Systems Manager Parameter Store
