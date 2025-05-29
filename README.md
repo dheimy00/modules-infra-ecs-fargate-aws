@@ -84,6 +84,58 @@ module "ecs_fargate" {
     LOG_LEVEL   = "info"
   }
 
+  # IAM Policy Configuration
+  task_role_policy_statements = [
+    {
+      effect = "Allow"
+      actions = [
+        "s3:GetObject",
+        "s3:ListBucket"
+      ]
+      resources = [
+        "arn:aws:s3:::my-bucket",
+        "arn:aws:s3:::my-bucket/*"
+      ]
+    },
+    {
+      effect = "Allow"
+      actions = [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret"
+      ]
+      resources = [
+        "arn:aws:secretsmanager:region:account:secret:db-password",
+        "arn:aws:secretsmanager:region:account:secret:api-key"
+      ]
+    },
+    {
+      effect = "Allow"
+      actions = [
+        "sqs:SendMessage",
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes"
+      ]
+      resources = [
+        "arn:aws:sqs:region:account:my-queue"
+      ]
+    },
+    {
+      effect = "Allow"
+      actions = [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:Query",
+        "dynamodb:Scan"
+      ]
+      resources = [
+        "arn:aws:dynamodb:region:account:table/my-table"
+      ]
+    }
+  ]
+
   # Network Configuration
   is_private_subnet = true
   vpc_cidr          = "10.0.0.0/16"
@@ -126,6 +178,124 @@ module "ecs_fargate" {
   }
 }
 ```
+
+### IAM Policy Examples
+
+The `task_role_policy_statements` variable allows you to define custom IAM permissions for your ECS tasks. Here are some common examples:
+
+#### S3 Access
+```hcl
+task_role_policy_statements = [
+  {
+    effect = "Allow"
+    actions = [
+      "s3:GetObject",
+      "s3:ListBucket"
+    ]
+    resources = [
+      "arn:aws:s3:::my-bucket",
+      "arn:aws:s3:::my-bucket/*"
+    ]
+  }
+]
+```
+
+#### Secrets Manager Access
+```hcl
+task_role_policy_statements = [
+  {
+    effect = "Allow"
+    actions = [
+      "secretsmanager:GetSecretValue",
+      "secretsmanager:DescribeSecret"
+    ]
+    resources = [
+      "arn:aws:secretsmanager:region:account:secret:*"
+    ]
+  }
+]
+```
+
+#### SQS Access
+```hcl
+task_role_policy_statements = [
+  {
+    effect = "Allow"
+    actions = [
+      "sqs:SendMessage",
+      "sqs:ReceiveMessage",
+      "sqs:DeleteMessage",
+      "sqs:GetQueueAttributes"
+    ]
+    resources = [
+      "arn:aws:sqs:region:account:my-queue"
+    ]
+  }
+]
+```
+
+#### DynamoDB Access
+```hcl
+task_role_policy_statements = [
+  {
+    effect = "Allow"
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:PutItem",
+      "dynamodb:UpdateItem",
+      "dynamodb:DeleteItem",
+      "dynamodb:Query",
+      "dynamodb:Scan"
+    ]
+    resources = [
+      "arn:aws:dynamodb:region:account:table/my-table"
+    ]
+  }
+]
+```
+
+#### CloudWatch Logs Access
+```hcl
+task_role_policy_statements = [
+  {
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+      "logs:DescribeLogStreams"
+    ]
+    resources = [
+      "arn:aws:logs:region:account:log-group:/ecs/*"
+    ]
+  }
+]
+```
+
+#### KMS Access
+```hcl
+task_role_policy_statements = [
+  {
+    effect = "Allow"
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey"
+    ]
+    resources = [
+      "arn:aws:kms:region:account:key/my-key-id"
+    ]
+  }
+]
+```
+
+#### Best Practices
+1. Follow the principle of least privilege
+2. Use specific resource ARNs instead of wildcards when possible
+3. Group related permissions in the same policy statement
+4. Consider using AWS managed policies for common use cases
+5. Regularly review and audit permissions
+6. Use conditions to restrict access based on tags or other attributes
+7. Document the purpose of each policy statement
 
 ## Inputs
 
