@@ -63,9 +63,10 @@ variable "task_ephemeral_storage" {
 }
 
 variable "task_environment_vars" {
-  description = "Environment variables for the ECS task"
-  type        = map(string)
-  default     = {}
+  type = list(object({
+    name  = string
+    value = string
+  }))
 }
 
 variable "desired_count" {
