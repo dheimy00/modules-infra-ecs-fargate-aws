@@ -178,13 +178,14 @@ variable "scale_out_cooldown" {
   default     = 300
 }
 
-variable "task_role_policy_statements" {
-  type = list(object({
-    Effect   = string
-    Action   = list(string)
-    Resource = any # or string if it's always a single string
-  }))
-  default = []
+variable "task_role_arn" {
+  description = "ARN da task role"
+  type        = string
+}
+
+variable "task_execution_role_arn" {
+  description = "ARN da execution role"
+  type        = string
 }
 
 
