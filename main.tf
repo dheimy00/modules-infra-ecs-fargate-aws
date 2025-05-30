@@ -31,62 +31,6 @@ locals {
   cluster_name = var.use_existing_cluster ? data.aws_ecs_cluster.existing[0].cluster_name : aws_ecs_cluster.main[0].name
 }
 
-# ECS Task Execution Role
-resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "${var.service_name}-task-execution-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
-      }
-    ]
-  })
-
-  tags = var.tags
-}
-
-resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
-  role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
-
-# ECS Task Role
-resource "aws_iam_role" "ecs_task_role" {
-  name = "${var.service_name}-task-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
-      }
-    ]
-  })
-
-  tags = var.tags
-}
-
-# Custom Task Role Policy
-resource "aws_iam_role_policy" "ecs_task_role_policy" {
-  name = "${var.service_name}-task-policy"
-  role = aws_iam_role.ecs_task_role.id
-
-  policy = jsonencode({
-    Version   = "2012-10-17"
-    Statement = var.task_role_policy_statements
-  })
-}
-
 # Application Load Balancer
 resource "aws_lb" "alb" {
   name               = "${var.service_name}-alb"
@@ -217,8 +161,8 @@ resource "aws_ecs_task_definition" "task" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.task_cpu
   memory                   = var.task_memory
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-  task_role_arn            = aws_iam_role.ecs_task_role.arn
+  execution_role_arn       = var.task_execution_role_arn
+  task_role_arn            = var.task_role_arn
   ephemeral_storage {
     size_in_gib = var.task_ephemeral_storage
   }
