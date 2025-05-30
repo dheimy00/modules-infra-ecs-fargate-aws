@@ -184,7 +184,7 @@ variable "task_role_policy_statements" {
     Action   = list(string)
     Resource = any # or string if it's always a single string
   }))
-  default     = []
+  default = []
 }
 
 
