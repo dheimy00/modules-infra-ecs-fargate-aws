@@ -181,7 +181,7 @@ variable "scale_out_cooldown" {
 variable "task_role_policy_statements" {
   type = list(object({
     Effect   = string
-    Action   = any # or list(string) if you want strict typing
+    Action   = list(string)
     Resource = any # or string if it's always a single string
   }))
 }
