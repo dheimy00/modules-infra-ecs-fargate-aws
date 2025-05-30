@@ -229,9 +229,9 @@ resource "aws_ecs_task_definition" "task" {
       image     = var.container_image
       essential = true
       environment = [
-        for name, value in var.task_environment_vars : {
-          name  = name
-          value = value
+        for env_var in var.task_environment_vars : {
+          name  = env_var.name
+          value = env_var.value
         }
       ]
       secrets = [
