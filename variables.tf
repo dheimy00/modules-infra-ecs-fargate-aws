@@ -179,14 +179,13 @@ variable "scale_out_cooldown" {
 }
 
 variable "task_role_policy_statements" {
-  description = "List of IAM policy statements for the ECS task role"
   type = list(object({
-    effect    = string
-    actions   = list(string)
-    resources = list(string)
+    Effect   = string
+    Action   = any      # or list(string) if you want strict typing
+    Resource = any      # or string if it's always a single string
   }))
-  default = []
 }
+
 
 variable "host_port" {
   description = "Port on the host to map to the container port"
