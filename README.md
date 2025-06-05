@@ -96,6 +96,8 @@ module "ecs_fargate" {
   health_check_unhealthy_threshold = 3
   health_check_interval           = 30
   health_check_timeout            = 5
+  container_health_check_interval = 30
+  container_health_check_timeout  = 5
 
   tags = {
     Environment = "production"
@@ -136,10 +138,12 @@ module "ecs_fargate" {
   - Example: `["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]`
   - Must return exit code 0 for success, non-zero for failure
   - Retries and start period can be configured
+  - Separate interval and timeout settings from target group health checks
 - NLB target group health checks:
   - Configured using TCP protocol
   - Used to determine if the container is healthy for traffic routing
   - Independent of container-level health checks
+  - Separate interval and timeout settings from container health checks
 
 ### Container HealthCheck Configuration
 The module configures container health checks in the ECS task definition with the following parameters:

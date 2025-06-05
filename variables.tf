@@ -224,13 +224,25 @@ variable "health_check_unhealthy_threshold" {
 }
 
 variable "health_check_interval" {
-  description = "Interval between health checks in seconds"
+  description = "Interval between target group health checks in seconds"
   type        = number
   default     = 30
 }
 
 variable "health_check_timeout" {
-  description = "Timeout for health check in seconds"
+  description = "Timeout for target group health check in seconds"
+  type        = number
+  default     = 5
+}
+
+variable "container_health_check_interval" {
+  description = "Interval between container health checks in seconds"
+  type        = number
+  default     = 30
+}
+
+variable "container_health_check_timeout" {
+  description = "Timeout for container health check in seconds"
   type        = number
   default     = 5
 }

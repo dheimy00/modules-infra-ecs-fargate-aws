@@ -151,8 +151,8 @@ resource "aws_ecs_task_definition" "task" {
       ]
       healthCheck = {
         command     = var.health_check_command
-        interval    = var.health_check_interval
-        timeout     = var.health_check_timeout
+        interval    = var.container_health_check_interval
+        timeout     = var.container_health_check_timeout
         retries     = var.health_check_retries
         startPeriod = var.health_check_start_period
       }
