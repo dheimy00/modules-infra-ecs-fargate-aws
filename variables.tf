@@ -17,7 +17,7 @@ variable "vpc_id" {
 }
 
 variable "subnet_ids" {
-  description = "List of subnet IDs for the ECS tasks and ALB"
+  description = "List of subnet IDs for the ECS tasks and NLB"
   type        = list(string)
 }
 
@@ -81,14 +81,14 @@ variable "service_name" {
   default     = null
 }
 
-variable "alb_internal" {
-  description = "Whether the ALB is internal"
+variable "nlb_internal" {
+  description = "Whether the NLB is internal"
   type        = bool
   default     = false
 }
 
 variable "enable_deletion_protection" {
-  description = "Whether to enable deletion protection for the ALB"
+  description = "Whether to enable deletion protection for the NLB"
   type        = bool
   default     = false
 }
@@ -205,26 +205,10 @@ variable "task_secrets" {
 }
 
 # Health Check Variables
-variable "health_check_protocol" {
-  description = "Protocol to use for health check (HTTP or HTTPS)"
-  type        = string
-  default     = "HTTP"
-  validation {
-    condition     = contains(["HTTP", "HTTPS"], var.health_check_protocol)
-    error_message = "Health check protocol must be either HTTP or HTTPS."
-  }
-}
-
 variable "health_check_port" {
   description = "Port to use for health check"
   type        = string
   default     = "traffic-port"
-}
-
-variable "health_check_path" {
-  description = "Path to use for health check"
-  type        = string
-  default     = "/health"
 }
 
 variable "health_check_healthy_threshold" {
@@ -249,12 +233,6 @@ variable "health_check_timeout" {
   description = "Timeout for health check in seconds"
   type        = number
   default     = 5
-}
-
-variable "health_check_matcher" {
-  description = "HTTP codes to use when checking for a successful response from a target"
-  type        = string
-  default     = "200"
 }
 
 variable "health_check_command" {
