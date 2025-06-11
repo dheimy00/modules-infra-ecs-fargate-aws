@@ -7,16 +7,48 @@ terraform {
   }
 }
 
+#
+resource "aws_ecr_repository" "main" {
+  name                 = "${var.service_name}-app"
+  image_tag_mutability = "IMMUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  tags = var.tags
+}
+
+resource "aws_ecr_lifecycle_policy" "main" {
+  repository = aws_ecr_repository.main.name
+  policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1
+        description  = "Keep last 30 images"
+        selection = {
+          tagStatus   = "any"
+          countType   = "imageCountMoreThan"
+          countNumber = 30
+        }
+        action = {
+          type = "expire"
+        }
+      }
+    ]
+  })
+}
+
 # Check if ECS cluster exists
 data "aws_ecs_cluster" "existing" {
   count        = var.use_existing_cluster ? 1 : 0
-  cluster_name = var.cluster_name
+  cluster_name = "${var.cluster_name}-cluster"
 }
 
 # ECS Cluster
 resource "aws_ecs_cluster" "main" {
   count = var.use_existing_cluster ? 0 : 1
-  name  = var.cluster_name
+  name  = "${var.cluster_name}-cluster"
 
   setting {
     name  = "containerInsights"
